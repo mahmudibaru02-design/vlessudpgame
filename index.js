@@ -422,18 +422,32 @@ class GatewayServer {
   }
 
   remoteSocketToWS(remoteSocket, webSocket, responseHeader, retry) {
-    let header = responseHeader, hasData = false;
+    let header = responseHeader;
+    let hasData = false;
+
     remoteSocket.on('data', (chunk) => {
       hasData = true;
-      if (webSocket.readyState !== WebSocket.OPEN) { remoteSocket.destroy(); return; }
+      if (webSocket.readyState !== WebSocket.OPEN) { 
+        remoteSocket.destroy(); 
+        return; 
+      }
+
       if (header) {
+        // Mengirimkan versi VLESS balasan ke klien di awal data agar tidak EOF
         webSocket.send(Buffer.concat([Buffer.from(header), chunk]));
         header = null;
       } else {
         webSocket.send(chunk);
       }
     });
-    remoteSocket.on('close', () => { if (!hasData && retry) retry(); });
+
+    remoteSocket.on('close', () => { 
+      if (!hasData && retry) retry(); 
+    });
+
+    remoteSocket.on('error', () => {
+      if (webSocket.readyState === WebSocket.OPEN) webSocket.close();
+    });
   }
 
   start(port = PORT) {
