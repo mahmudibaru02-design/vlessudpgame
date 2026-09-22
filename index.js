@@ -366,7 +366,8 @@ class GatewayServer {
 
   readFlashHeader(buf) {
     try {
-      const v = buf[0]; let udp = false;
+      const v = buf[0]; 
+      let udp = false;
       const addLength = buf[17];
       const cmdIndex = 18 + addLength;
       const cmd = buf[cmdIndex];
@@ -389,18 +390,21 @@ class GatewayServer {
       } else if (at === 3) { 
         al = 16; 
         const ip = []; 
-        for(let i=0;i<8;i++) ip.push(buf.readUInt16BE(avi+i*2).toString(16)); 
+        for(let i=0; i<8; i++) ip.push(buf.readUInt16BE(avi + i * 2).toString(16)); 
         av = ip.join(":"); 
       }
       
       const rawDataIndex = avi + al;
+      // Memastikan versi VLESS balasan diformat aman untuk mencegah EOF
+      const vlessVersionHeader = Buffer.from([v, 0]);
+
       return { 
         hasError: false, 
         addressRemote: av, 
         portRemote: pr, 
         rawDataIndex: rawDataIndex, 
         rawClientData: buf.slice(rawDataIndex), 
-        version: Buffer.from([v, 0]), 
+        version: vlessVersionHeader, 
         isUDP: udp 
       };
     } catch (err) {
@@ -433,7 +437,7 @@ class GatewayServer {
       }
 
       if (header) {
-        // Mengirimkan versi VLESS balasan ke klien di awal data agar tidak EOF
+        // Mengirimkan header balasan VLESS tepat di awal data agar core klien tidak EOF
         webSocket.send(Buffer.concat([Buffer.from(header), chunk]));
         header = null;
       } else {
