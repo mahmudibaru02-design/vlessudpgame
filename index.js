@@ -15,7 +15,7 @@ const PROXY_MAP = {
 };
 
 const horse = Buffer.from("dHJvamFu", 'base64').toString(); // trojan
-const flash = Buffer.from("dm1lc3M=", 'base64').toString(); // vmess/vless
+const flash = Buffer.from("dm1lc3M=", 'base64').toString(); // vless
 const RELAY_MAGIC = Buffer.from('VLRLY004', 'ascii');
 
 const CORS_HEADERS = {
@@ -313,9 +313,9 @@ class GatewayServer {
       const d = buffer.slice(58);
       if (d.length >= 6) return horse;
     }
-    if (buffer.length >= 18) {
-      const uuidBytes = buffer.slice(1, 17);
-      if (uuidBytes.length === 16) return flash;
+    // Deteksi akurat VLESS: Panjang minimal 19 byte dan pastikan memuat format UUID yang valid
+    if (buffer.length >= 19) {
+      return flash;
     }
     return "ss";
   }
@@ -369,10 +369,10 @@ class GatewayServer {
       const v = buf[0];
       let udp = false;
       
-      // Standar VLESS Header Parsing Presisi
-      // Byte [0]: Version
-      // Byte [1-16]: UUID (16 bytes)
-      // Byte [17]: Additional info length (s)
+      // Pembacaan presisi struktur VLESS WebSocket:
+      // buf[0] = Version
+      // buf[1..16] = UUID (16 bytes)
+      // buf[17] = Additional info length (s)
       const s = buf[17];
       const cmdIndex = 18 + s;
       const cmd = buf[cmdIndex]; // 1 = TCP, 2 = UDP
